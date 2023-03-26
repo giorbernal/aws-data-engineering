@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "lambda-collector"
+version = "0.1.0"
+description = "This is the data collector of the aws-data-engineering"
+authors = ["restless <restless_project@hotmail.es>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^1.5.3"
+nose = "^1.3.7"
+requests = "^2.28.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
