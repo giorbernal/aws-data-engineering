@@ -1,3 +1,4 @@
+# This clas is just to define common methods for the false-interface
 class ConnectorInterface:
 
     def __init__(self):
