@@ -1,33 +1,24 @@
-import sys
-import os
 import unittest
 
-import pandas as pd
-
-sys.path.insert(0, os.getcwd())
-
-from definitions import ROOT_DIR
+from lambda_collector.data.Connector import Connector
 from lambda_collector.data.DataExtractor import DataExtractor
+from tests.ConnectorMock import ConnectorMock
 
-TEST_FILE = '/'.join([ROOT_DIR,'tests/datasets/sample.csv'])
 
 class DataExtractorTest(unittest.TestCase):
 
     @unittest.skip
-    def test_base(self):
-        de = DataExtractor()
+    def test_live(self):
+        ci = Connector()
+        de = DataExtractor(ci)
         de.process()
         self.assertEqual(0, 0)
 
-    def test_adapt_s3_data(self):
-        de = DataExtractor()
-        s3_df = de.__adapt_s3_data__(pd.read_csv(TEST_FILE, sep=';'))
-        # TODO assert
-
-    def test_adapt_dynamo_data(self):
-        de = DataExtractor()
-        dynamo_df = de.__adapt_dynamo_data__(pd.read_csv(TEST_FILE, sep=';'))
-        # TODO assert
+    def test_mock(self):
+        ci = ConnectorMock()
+        de = DataExtractor(ci)
+        de.process()
+        self.assertEqual(0, 0)
 
 
 if __name__ == '__main__':
