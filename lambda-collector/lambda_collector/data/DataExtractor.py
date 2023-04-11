@@ -5,6 +5,7 @@ class DataExtractor:
 
     def process(self):
         try:
+            # Read Data
             raw_df = self.ci.get_raw_data()
             ref_stations = self.__fit_stations__(self.ci.get_ref_stations())
             ref_parameters = self.__fit_parameters__(self.ci.get_ref_parameters())
@@ -16,6 +17,7 @@ class DataExtractor:
             joined_df['FECHA']=joined_df[['ANO', 'MES', 'DIA']].apply(lambda x: str.join('-', [str(x['ANO']), str(x['MES']), str(x['DIA'])]), axis=1)
             joined_df.drop(columns=['ANO', 'MES', 'DIA', 'PROVINCIA', 'MUNICIPIO', 'PUNTO_MUESTREO', 'ESTACION', 'MAGNITUD', 'UNIT'], inplace=True)
 
+            # Transform and store data
             self.__adapt_s3_data__(joined_df)
             self.__adapt_dynamo_data__(joined_df)
         except Exception as e:
@@ -37,6 +39,6 @@ class DataExtractor:
 
     def __adapt_dynamo_data__(self, df):
         # TODO
-        op_df = df
-        self.ci.save_dynamo_data(op_df)
+        pivot_df = df
+        self.ci.save_dynamo_data(pivot_df)
 
