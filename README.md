@@ -12,7 +12,7 @@ We will handle next projects:
 * lambda-collector: python project that contains the code that implements tha lambda that extracts the information and set it in the proper datastore/s.
 * ...
 
-Let's condider next data structure in data storage:
+Let's consider next data structure in data storage:
 ```
 S3/
   | jbernal-wheather-madrid/
