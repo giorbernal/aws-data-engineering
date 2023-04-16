@@ -12,6 +12,7 @@ TEST_RAW_FILE = '/'.join([ROOT_DIR, 'tests/datasets/sample.csv'])
 TEST_REF_STATIONS_FILE = '/'.join([ROOT_DIR, '../refs/stations.csv'])
 TEST_REF_PARAMS_FILE = '/'.join([ROOT_DIR, '../refs/params.csv'])
 TEST_S3_DATA = '/'.join([ROOT_DIR, 'tests/datasets/s3.csv'])
+TEST_DYNAMO_DATA = '/'.join([ROOT_DIR, 'tests/datasets/dynamo.csv'])
 
 
 class ConnectorMock(ConnectorInterface):
@@ -36,4 +37,5 @@ class ConnectorMock(ConnectorInterface):
         assert_frame_equal(expected_df, df)
 
     def save_dynamo_data(self, df):
-        pass
+        expected_df = pd.read_csv(TEST_DYNAMO_DATA, sep=';')
+        assert_frame_equal(expected_df, df)

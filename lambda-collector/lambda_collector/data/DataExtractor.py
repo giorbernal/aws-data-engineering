@@ -47,18 +47,28 @@ class DataExtractor:
             joined_df.drop(columns=['ANO', 'MES', 'DIA', 'PROVINCIA', 'MUNICIPIO', 'PUNTO_MUESTREO', 'ESTACION', 'MAGNITUD', 'UNIT'], inplace=True)
 
             # Transform and store data
-            self.__adapt_s3_data__(joined_df)
-            self.__adapt_dynamo_data__(joined_df)
+            value_columns = get_value_columns()
+            self.__adapt_s3_data__(joined_df, value_columns)
+            self.__adapt_dynamo_data__(joined_df, value_columns)
         except Exception as e:
-            print(': '.join(['Error while processing data', e]))
+            print(': '.join(['Error while processing data', str(e)]))
 
-    def __adapt_s3_data__(self, df):
-        value_columns = get_value_columns()
+    def __adapt_s3_data__(self, df, value_columns):
         df['AVG'] = df[value_columns].apply(avg_calculation, axis=1)
         self.ci.save_s3_data(df.drop(columns=value_columns))
+        df.drop(columns=['AVG'], inplace=True)
 
-    def __adapt_dynamo_data__(self, df):
-        # TODO
-        pivot_df = df
-        self.ci.save_dynamo_data(pivot_df)
+    def __adapt_dynamo_data__(self, df, value_columns):
+        melt_df = pd.melt(df, id_vars=['N_MAGNITUD', 'N_ESTACION', 'FECHA'], value_vars=value_columns,\
+                          var_name='HORA_VALIDEZ', value_name='VALOR')
+        melt_df['FECHA'] = melt_df[['FECHA', 'HORA_VALIDEZ']].apply(lambda x: '-'.join([str(x[0]), str(int(str(x[1])[-2:])-1).zfill(2)]), axis=1)
+        group = melt_df.groupby(by=['N_MAGNITUD', 'N_ESTACION', 'FECHA'])
+        melt_df['VALIDEZ'] = group['VALOR'].transform(lambda x: x.iloc[1])
+        # TODO Maybe we could see here a trace whit the elements to remove, as an evidence of mistakes in the data
+        melt_df = melt_df[((melt_df['VALOR'] != 'V') & (melt_df['VALOR'] != 'N')) & (melt_df['VALIDEZ'] == 'V')]
+        melt_df.drop(columns=['HORA_VALIDEZ', 'VALIDEZ'], inplace=True)
+        melt_df.reset_index(inplace=True, drop=True)
+        melt_df['VALOR'] = pd.to_numeric(melt_df['VALOR'], errors='coerce')
+        self.ci.save_dynamo_data(melt_df)
+
 
