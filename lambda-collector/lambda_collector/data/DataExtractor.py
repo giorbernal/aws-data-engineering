@@ -23,7 +23,7 @@ def get_value_columns():
 
 
 def avg_calculation(x):
-    data = [np.NaN if x[i+1] == 'N' else x[i] for i in pd.Series(list(range(0, 48, 2)))]
+    data = [np.NaN if x[i+1] == 'N' else x[i] for i in list(range(0, 48, 2))]
     return pd.Series(data).mean()
 
 
@@ -50,7 +50,7 @@ class DataExtractor:
             self.__adapt_s3_data__(joined_df)
             self.__adapt_dynamo_data__(joined_df)
         except Exception as e:
-            print(str.join(': ', ['Error while processing data', e]))
+            print(': '.join(['Error while processing data', e]))
 
     def __adapt_s3_data__(self, df):
         value_columns = get_value_columns()
