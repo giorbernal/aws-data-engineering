@@ -15,7 +15,7 @@ We will handle next projects:
 Let's consider next data structure in data storage:
 ```
 S3/
-  | jbernal-wheather-madrid/
+  | jbernal-weather-madrid/
     | refs/
     | history-data/
     | agg-data/

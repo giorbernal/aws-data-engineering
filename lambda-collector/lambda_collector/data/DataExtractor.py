@@ -43,7 +43,7 @@ class DataExtractor:
             joined_df = raw_df\
                 .merge(ref_stations, on='ESTACION', how='inner')\
                 .merge(ref_parameters, on='MAGNITUD', how='inner')
-            joined_df['FECHA']=joined_df[['ANO', 'MES', 'DIA']].apply(lambda x: str.join('-', [str(x['ANO']), str(x['MES']), str(x['DIA'])]), axis=1)
+            joined_df['FECHA']=joined_df[['ANO', 'MES', 'DIA']].apply(lambda x: str.join('-', [str(x['ANO']), str(x['MES']).zfill(2), str(x['DIA']).zfill(2)]), axis=1)
             joined_df.drop(columns=['ANO', 'MES', 'DIA', 'PROVINCIA', 'MUNICIPIO', 'PUNTO_MUESTREO', 'ESTACION', 'MAGNITUD', 'UNIT'], inplace=True)
 
             # Transform and store data
