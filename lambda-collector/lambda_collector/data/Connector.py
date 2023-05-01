@@ -8,16 +8,11 @@ from lambda_collector.data.ConnectorInterface import ConnectorInterface
 
 class Connector(ConnectorInterface):
 
-    def __init__(self):
+    def __init__(self, local_mode=False):
         super().__init__()
 
         # Raw Data
         self.url = os.environ.get('RAW_DATA_URL', 'https://datos.madrid.es/egob/catalogo/300392-11041819-meteorologia-tiempo-real.csv')
-
-        # Set AWS credentials
-        self.aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
-        self.aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-        self.aws_region = os.environ.get('AWS_REGION')
 
         # AWS Context info
         self.bucket = os.environ.get('AWS_S3_BUCKET_NAME', 'jbernal-weather-madrid')
@@ -28,12 +23,20 @@ class Connector(ConnectorInterface):
         self.table_name = os.environ.get('AWS_DYNAMO_TABLE_NAME', 'weather-datapoints')
 
         # Initiate session
-        # create session with AWS credentials
-        self.session = boto3.Session(
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.aws_region
-        )
+        if local_mode:
+            # Set AWS credentials
+            self.aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
+            self.aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+            self.aws_region = os.environ.get('AWS_REGION')
+            # create session with AWS credentials
+            self.session = boto3.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.aws_region
+            )
+        else:
+            # create session without AWS credentials
+            self.session = boto3.Session()
 
     def get_raw_data(self):
         s = requests.get(self.url).content

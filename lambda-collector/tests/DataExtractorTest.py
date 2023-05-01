@@ -9,7 +9,7 @@ class DataExtractorTest(unittest.TestCase):
 
     @unittest.skip
     def test_live(self):
-        ci = Connector()
+        ci = Connector(local_mode=True)
         de = DataExtractor(ci)
         de.process()
         self.assertEqual(0, 0)
