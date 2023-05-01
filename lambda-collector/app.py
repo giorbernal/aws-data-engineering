@@ -1,5 +1,6 @@
 import json
-from lambda_collector.data import Connector, DataExtractor
+from lambda_collector.data.Connector import Connector
+from lambda_collector.data.DataExtractor import DataExtractor
 
 
 def __get_response__(code, message):
@@ -13,7 +14,7 @@ def __get_response__(code, message):
     return response
 
 
-def lambda_handler(event, context):
+def handler(event, context):
 
     try:
         ci = Connector()

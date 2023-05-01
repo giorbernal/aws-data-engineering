@@ -51,7 +51,8 @@ class DataExtractor:
             self.__adapt_s3_data__(joined_df, value_columns)
             self.__adapt_dynamo_data__(joined_df, value_columns)
         except Exception as e:
-            print(': '.join(['Error while processing data', str(e)]))
+            print(f"Error while processing data: {str(e)}")
+            raise e
 
     def __adapt_s3_data__(self, df, value_columns):
         df['AVG'] = df[value_columns].apply(avg_calculation, axis=1)
