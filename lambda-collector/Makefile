@@ -5,6 +5,9 @@ test:
 build:
 	scripts/build.sh
 
+deploy:
+	scripts/deploy.sh
+
 destroy:
 	scripts/destroy.sh
 
