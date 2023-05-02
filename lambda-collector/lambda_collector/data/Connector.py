@@ -106,6 +106,5 @@ class Connector(ConnectorInterface):
             for item in data:
                 batch.put_item(Item=item)
 
-        dynamodb.close()
-
+        # It seems there is nothing to close here
 
