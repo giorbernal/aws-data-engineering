@@ -10,7 +10,7 @@ aws lambda create-function --region ${AWS_REGION} --function-name ${COLLECTOR_FU
     --timeout 600
 
 # Creating the EventBridge rule to schedule the lambda
-aws events put-rule --name "de-collector-schedule" --schedule-expression "cron(0 0 * * ? *)"
+aws events put-rule --name "de-collector-schedule" --schedule-expression "cron(50 21 * * ? *)"
 
 # Attach a the lambda as a target of the event
 aws events put-targets --rule "de-collector-schedule" --targets "Id"="1","Arn"="arn:aws:lambda:${AWS_REGION}:${AWS_USER}:function:de-collector"
