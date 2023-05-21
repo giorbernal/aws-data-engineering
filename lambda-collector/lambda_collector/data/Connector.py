@@ -1,14 +1,15 @@
 import requests
-import boto3
 import pandas as pd
 import io
 import os
+
 from lambda_collector.data.ConnectorInterface import ConnectorInterface
+from lambda_collector.Utils import get_session
 
 
 class Connector(ConnectorInterface):
 
-    def __init__(self, local_mode=False):
+    def __init__(self):
         super().__init__()
 
         # Raw Data
@@ -22,21 +23,7 @@ class Connector(ConnectorInterface):
         self.history_data_key = os.environ.get('AWS_S3_HISTORY_DATA_KEY', 'history-data')
         self.table_name = os.environ.get('AWS_DYNAMO_TABLE_NAME', 'weather-datapoints')
 
-        # Initiate session
-        if local_mode:
-            # Set AWS credentials
-            self.aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
-            self.aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-            self.aws_region = os.environ.get('AWS_REGION')
-            # create session with AWS credentials
-            self.session = boto3.Session(
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                region_name=self.aws_region
-            )
-        else:
-            # create session without AWS credentials
-            self.session = boto3.Session()
+        self.session = get_session()
 
     def get_raw_data(self):
         s = requests.get(self.url).content

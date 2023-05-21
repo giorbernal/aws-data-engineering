@@ -1,6 +1,7 @@
 test:
 	#nosetests tests
 	python tests/DataExtractorTest.py
+	python tests/SearcherTest.py
 
 build:
 	scripts/build.sh

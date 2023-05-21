@@ -1,11 +1,14 @@
 import unittest
 import boto3
 import os
+import pandas as pd
 
+from definitions import ROOT_DIR
 from typing import Any
 from testcontainers.localstack import LocalStackContainer
-from lambda_operational_search.Searcher import Searcher
+from lambda_collector.search.Searcher import Searcher
 
+TEST_DYNAMO_SEARCH_DATA = '/'.join([ROOT_DIR, 'tests/datasets/dynamo_search.csv'])
 
 def get_client(url, name, **kwargs) -> Any:
 #    kwargs_ = {
@@ -19,11 +22,66 @@ def get_client(url, name, **kwargs) -> Any:
     return boto3.client(name, endpoint_url=url)
 
 
+def create_table(dynamodb_client, table_name):
+    # specify the table schema
+    table_schema = {
+        'AttributeDefinitions': [
+            {
+                'AttributeName': 'ESTACION_MAGNITUD',
+                'AttributeType': 'S'  # S for String
+            },
+            {
+                'AttributeName': 'FECHA',
+                'AttributeType': 'S'
+            }
+        ],
+        'KeySchema': [
+            {
+                'AttributeName': 'ESTACION_MAGNITUD',
+                'KeyType': 'HASH'  # HASH key
+            },
+            {
+                'AttributeName': 'FECHA',
+                'KeyType': 'RANGE'  # RANGE key
+            }
+        ],
+        'TableName': table_name,
+        'BillingMode': 'PAY_PER_REQUEST'  # no provisioned throughput needed
+    }
+
+    # create the table
+    response = dynamodb_client.create_table(**table_schema)
+    return response
+
+
+def insert_test_data(dynamodb_client, table_name):
+    df = pd.read_csv(TEST_DYNAMO_SEARCH_DATA, sep=';')
+    df['VALOR'] = df['VALOR'].astype(str)
+    items_to_put = []
+    for i in range(len(df)):
+        row = df.iloc[i]
+        items_to_put.append({
+            'PutRequest': {
+                'Item': {
+                    'ESTACION_MAGNITUD': {'S': row['ESTACION_MAGNITUD']},
+                    'FECHA': {'S': row['FECHA']},
+                    'VALOR': {'S': row['VALOR']}
+                }
+            }
+        })
+    response = dynamodb_client.batch_write_item(
+         RequestItems={
+             table_name: items_to_put,
+         }
+    )
+    return response
+
+
 class SearcherTest(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(SearcherTest, self).__init__(*args, **kwargs)
-        self.run_local_stack_container = os.getenv("RUN_LOCAL_STACK_CONTAINER", default=True) == 'True'
+        self.run_local_stack_container = os.getenv("RUN_LOCAL_STACK_CONTAINER", default='True') == 'True'
         self.localstack = None
 
     def __initialize__(self):
@@ -40,21 +98,24 @@ class SearcherTest(unittest.TestCase):
         if self.run_local_stack_container:
             self.localstack.stop()
 
-    def test(self):
+    def testSearch(self):
         url = self.__initialize__()
-        dynamo_client = get_client(url, "dynamodb")
+        dynamodb_client = get_client(url, "dynamodb")
+        searcher = Searcher(dynamodb_client)
+        table_name = searcher.get_table_name()
 
-        # TODO insert test data in dynamo db
-        tables = dynamo_client.list_tables()
-        #tables = []
-        assert tables["TableNames"] == []
+        # Creating table
+        create_table(dynamodb_client, table_name)
+        tables = dynamodb_client.list_tables()
+        assert tables["TableNames"] == [table_name]
+
+        # Insert test data in dynamo db
+        insert_test_data(dynamodb_client, table_name)
 
         # Search object
-        # TODO Do the test case
-        searcher = Searcher(dynamo_client)
-        searcher.get_data("my key")
+        response = searcher.get_data('VELOCIDAD VIENTO-J.M.D. Moratalaz')
 
-        self.assertEqual(0, 0)
+        self.assertEqual(2, response['Count'])
 
         self.__destroy__()
 
