@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import os
 
+from datetime import datetime
 from lambda_collector.data.ConnectorInterface import ConnectorInterface
 from lambda_collector.Utils import get_session
 
@@ -78,7 +79,7 @@ class Connector(ConnectorInterface):
         s3.close()
 
     def __write_dynamo_data_(self, df):
-        # Create a DynamoDB client
+        # Create a DynamoDB resource TODO (Should we swap to client to enabling localstack test?)
         dynamodb = self.session.resource('dynamodb')
 
         # Reference the DynamoDB table
@@ -86,6 +87,7 @@ class Connector(ConnectorInterface):
 
         # Convert pandas dataframe to list of dictionaries
         df['VALOR'] = df['VALOR'].astype(str)
+        df['FECHA'] = df[['FECHA']].apply(lambda x: datetime.strptime(x[0], '%Y-%m-%d').timestamp(), axis=1)
         data = df.to_dict('records')
 
         # Write data to DynamoDB table

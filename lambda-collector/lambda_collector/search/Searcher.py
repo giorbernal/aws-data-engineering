@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from lambda_collector.Utils import get_session
 
+
 class Searcher:
 
     def __init__(self, client=None):
