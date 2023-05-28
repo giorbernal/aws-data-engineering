@@ -4,6 +4,7 @@ import os
 import pandas as pd
 
 from definitions import ROOT_DIR
+from datetime import datetime
 from typing import Any
 from testcontainers.localstack import LocalStackContainer
 from lambda_collector.search.Searcher import Searcher
@@ -32,7 +33,7 @@ def create_table(dynamodb_client, table_name):
             },
             {
                 'AttributeName': 'FECHA',
-                'AttributeType': 'S'
+                'AttributeType': 'N'
             }
         ],
         'KeySchema': [
@@ -54,9 +55,15 @@ def create_table(dynamodb_client, table_name):
     return response
 
 
+def delete_table(dynamodb_client, table_name):
+    response = dynamodb_client.delete_table(TableName=table_name)
+    return response
+
+
 def insert_test_data(dynamodb_client, table_name):
     df = pd.read_csv(TEST_DYNAMO_SEARCH_DATA, sep=';')
     df['VALOR'] = df['VALOR'].astype(str)
+    df['FECHA'] = df[['FECHA']].apply(lambda x: datetime.strptime(x[0], '%Y-%m-%d'), axis=1)
     items_to_put = []
     for i in range(len(df)):
         row = df.iloc[i]
@@ -64,7 +71,7 @@ def insert_test_data(dynamodb_client, table_name):
             'PutRequest': {
                 'Item': {
                     'ESTACION_MAGNITUD': {'S': row['ESTACION_MAGNITUD']},
-                    'FECHA': {'S': row['FECHA']},
+                    'FECHA': {'N': str(row['FECHA'].timestamp())},
                     'VALOR': {'S': row['VALOR']}
                 }
             }
@@ -99,25 +106,28 @@ class SearcherTest(unittest.TestCase):
             self.localstack.stop()
 
     def testSearch(self):
-        url = self.__initialize__()
-        dynamodb_client = get_client(url, "dynamodb")
-        searcher = Searcher(dynamodb_client)
-        table_name = searcher.get_table_name()
+        try:
+            url = self.__initialize__()
+            dynamodb_client = get_client(url, "dynamodb")
+            searcher = Searcher(dynamodb_client)
+            table_name = searcher.get_table_name()
 
-        # Creating table
-        create_table(dynamodb_client, table_name)
-        tables = dynamodb_client.list_tables()
-        assert tables["TableNames"] == [table_name]
+            # Creating table
+            create_table(dynamodb_client, table_name)
+            tables = dynamodb_client.list_tables()
+            assert tables["TableNames"] == [table_name]
 
-        # Insert test data in dynamo db
-        insert_test_data(dynamodb_client, table_name)
+            # Insert test data in dynamo db
+            insert_test_data(dynamodb_client, table_name)
 
-        # Search object
-        response = searcher.get_data('VELOCIDAD VIENTO-J.M.D. Moratalaz')
+            # Search object
+            response = searcher.get_data('VELOCIDAD VIENTO-J.M.D. Moratalaz', '2023-3-26', '2023-3-28')
 
-        self.assertEqual(2, response['Count'])
+            self.assertEqual(2, response['Count'])
 
-        self.__destroy__()
+        finally:
+            delete_table(dynamodb_client, table_name)
+            self.__destroy__()
 
 
 if __name__ == '__main__':
