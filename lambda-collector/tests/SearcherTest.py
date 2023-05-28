@@ -11,6 +11,7 @@ from lambda_collector.search.Searcher import Searcher
 
 TEST_DYNAMO_SEARCH_DATA = '/'.join([ROOT_DIR, 'tests/datasets/dynamo_search.csv'])
 
+
 def get_client(url, name, **kwargs) -> Any:
 #    kwargs_ = {
 #        "endpoint_url": url,

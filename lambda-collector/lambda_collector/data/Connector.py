@@ -10,10 +10,11 @@ from lambda_collector.Utils import get_session
 
 class Connector(ConnectorInterface):
 
-    def __init__(self):
+    def __init__(self, s3_client=None, dynamodb_client=None, raw_data=None):
         super().__init__()
 
-        # Raw Data
+        # Raw Data (if it comes in the params, it will always be retrieved)
+        self.raw_data = raw_data
         self.url = os.environ.get('RAW_DATA_URL', 'https://datos.madrid.es/egob/catalogo/300392-11041819-meteorologia-tiempo-real.csv')
 
         # AWS Context info
@@ -24,12 +25,21 @@ class Connector(ConnectorInterface):
         self.history_data_key = os.environ.get('AWS_S3_HISTORY_DATA_KEY', 'history-data')
         self.table_name = os.environ.get('AWS_DYNAMO_TABLE_NAME', 'weather-datapoints')
 
-        self.session = get_session()
+        if s3_client is None and dynamodb_client is None:
+            session = get_session()
+            self.s3 = session.client('s3')
+            self.dynamodb = session.client('dynamodb')
+        else:
+            self.s3 = s3_client
+            self.dynamodb = dynamodb_client
 
     def get_raw_data(self):
-        s = requests.get(self.url).content
-        df = pd.read_csv(io.StringIO(s.decode('utf-8')), sep=';')
-        return df
+        if self.raw_data is None:
+            s = requests.get(self.url).content
+            df = pd.read_csv(io.StringIO(s.decode('utf-8')), sep=';')
+            return df
+        else:
+            return self.raw_data
 
     def get_ref_stations(self):
         df = self.__read_s3_data__('/'.join([self.refs_key, self.refs_stations]))
@@ -53,20 +63,13 @@ class Connector(ConnectorInterface):
         self.__write_dynamo_data_(df_to_store)
 
     def __read_s3_data__(self, key):
-        # create S3 client
-        s3 = self.session.client('s3')
-
         # Read file from S3 into DataFrame
-        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        obj = self.s3.get_object(Bucket=self.bucket, Key=key)
         df = pd.read_csv(obj['Body'], sep=';')
 
-        s3.close()
         return df
 
     def __write_s3_data__(self, df, key):
-        # connect to S3
-        s3 = self.session.client('s3')
-
         # create a bytes buffer to hold the data
         csv_buffer = io.StringIO()
 
@@ -74,26 +77,26 @@ class Connector(ConnectorInterface):
         df.to_csv(csv_buffer, index=False, sep=';')
 
         # write the buffer contents to S3
-        s3.put_object(Bucket=self.bucket, Key=key, Body=csv_buffer.getvalue().encode('utf-8'))
-
-        s3.close()
+        self.s3.put_object(Bucket=self.bucket, Key=key, Body=csv_buffer.getvalue().encode('utf-8'))
 
     def __write_dynamo_data_(self, df):
-        # Create a DynamoDB resource TODO (Should we swap to client to enabling localstack test?)
-        dynamodb = self.session.resource('dynamodb')
-
-        # Reference the DynamoDB table
-        table = dynamodb.Table(self.table_name)
-
-        # Convert pandas dataframe to list of dictionaries
         df['VALOR'] = df['VALOR'].astype(str)
-        df['FECHA'] = df[['FECHA']].apply(lambda x: datetime.strptime(x[0], '%Y-%m-%d').timestamp(), axis=1)
-        data = df.to_dict('records')
-
-        # Write data to DynamoDB table
-        with table.batch_writer() as batch:
-            for item in data:
-                batch.put_item(Item=item)
-
-        # It seems there is nothing to close here
+        df['FECHA'] = df[['FECHA']].apply(lambda x: datetime.strptime(x[0], '%Y-%m-%d'), axis=1)
+        items_to_put = []
+        for i in range(len(df)):
+            row = df.iloc[i]
+            items_to_put.append({
+                'PutRequest': {
+                    'Item': {
+                        'ESTACION_MAGNITUD': {'S': row['ESTACION_MAGNITUD']},
+                        'FECHA': {'N': str(row['FECHA'].timestamp())},
+                        'VALOR': {'S': row['VALOR']}
+                    }
+                }
+            })
+        self.dynamodb.batch_write_item(
+            RequestItems={
+                self.table_name: items_to_put,
+            }
+        )
 
