@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from lambda_collector.data.ConnectorInterface import ConnectorInterface
 from lambda_collector.Utils import get_session
+from lambda_collector.Constants import AWS_DEFAULT_TABLE, AWS_DEFAULT_BUCKET
 
 
 class Connector(ConnectorInterface):
@@ -18,12 +19,12 @@ class Connector(ConnectorInterface):
         self.url = os.environ.get('RAW_DATA_URL', 'https://datos.madrid.es/egob/catalogo/300392-11041819-meteorologia-tiempo-real.csv')
 
         # AWS Context info
-        self.bucket = os.environ.get('AWS_S3_BUCKET_NAME', 'jbernal-weather-madrid')
+        self.bucket = os.environ.get('AWS_S3_BUCKET_NAME', AWS_DEFAULT_BUCKET)
         self.refs_key = os.environ.get('AWS_S3_REFS_KEY', 'refs')
         self.refs_stations = os.environ.get('AWS_S3_REF_STATIONS', 'stations.csv')
         self.refs_parameters = os.environ.get('AWS_S3_REF_PARAMETERS', 'params.csv')
         self.history_data_key = os.environ.get('AWS_S3_HISTORY_DATA_KEY', 'history-data')
-        self.table_name = os.environ.get('AWS_DYNAMO_TABLE_NAME', 'weather-datapoints')
+        self.table_name = os.environ.get('AWS_DYNAMO_TABLE_NAME', AWS_DEFAULT_TABLE)
 
         if s3_client is None and dynamodb_client is None:
             session = get_session()
